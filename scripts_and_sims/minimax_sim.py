@@ -6,6 +6,16 @@ k = 5
 time_per_k_turns = 1
 res = ""
 
+game1 = GameRunner(setup_time, time_per_k_turns, k, 'n', "min_max_player", "better_player")
+print("min_max_starts:")
+for i in range(5):
+    res = game1.run()
+
+game2 = GameRunner(setup_time, time_per_k_turns, k, 'n', "better_player", "min_max_player")
+print("better_player starts:")
+for i in range(5):
+    game2.run()
+
 game1 = GameRunner(setup_time, time_per_k_turns, k, 'n', "min_max_player", "simple_player")
 print("min_max_starts:")
 for i in range(5):

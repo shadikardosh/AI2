@@ -36,7 +36,8 @@ class Player(abstract.AbstractPlayer):
 
         # board map bonus
         # Based on Washington University research
-        self.corner_bonus = 50
+        self.corner_bonus = 40
+        self.mobility_bonus = 5
         self.board_bonus = [[self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
@@ -85,7 +86,7 @@ class Player(abstract.AbstractPlayer):
         op_u = 0
         my_new_stables = set()
         op_new_stables = set()
-        self.updateBoardBonus(state)
+        self.deepUpdateBoardBonus(state)
         for x in range(BOARD_COLS):
             for y in range(BOARD_ROWS):
                 if state.board[x][y] == self.color:
@@ -99,18 +100,19 @@ class Player(abstract.AbstractPlayer):
                     #if self.canBeOpStable(state, (x, y)) and not (x, y) in self.op_stables:
                     #    op_new_stables.add((x, y))
 
-        if my_u == 0:
+        if my_cells == 0:
             # I have no tools left
             return -INFINITY
-        elif op_u == 0:
+        elif op_cells == 0:
             # The opponent has no tools left
             return INFINITY
         else:
-            return my_u - op_u + my_cells - op_cells
+            op_mobility = state.get_possible_moves()
+            return my_u - op_u - self.mobility_bonus*len(op_mobility)
 
     def updateBoardBonus(self, state):
         # call when we have captured x,y
-        corner_val = 50
+        corner_val = self.corner_bonus
         if state.board[0][0] == self.color:
             self.board_bonus[1][0] = corner_val
             self.board_bonus[0][1] = corner_val
@@ -146,6 +148,22 @@ class Player(abstract.AbstractPlayer):
             self.board_bonus[1][7] = -3
             self.board_bonus[0][6] = -3
             self.board_bonus[1][6] = -4
+
+    def deepUpdateBoardBonus(self, state):
+        for i in range(7):
+            for j in range(7):
+                if self.canBeMyStable(state, (i, j)):
+                    self.my_stables.add((i, j))
+                if self.canBeMyStable(state, (7-i, j)):
+                    self.my_stables.add((7-i, j))
+                if self.canBeMyStable(state, (i, 7-j)):
+                    self.my_stables.add((i, 7-j))
+                if self.canBeMyStable(state, (7-i, 7-j)):
+                    self.my_stables.add((7-i, 7-j))
+        for i in range(8):
+            for j in range(8):
+                if self.canBeStable(state, (i,j), False):
+                    self.board_bonus[i][j] = self.corner_bonus
 
     def is_my_stable(self, state, coords):
         return coords in self.my_stables or not state.isOnBoard(coords[0], coords[1])
@@ -191,10 +209,10 @@ class Player(abstract.AbstractPlayer):
     #                        op_new_stables.add((x, y))
 
     def canBeMyStable(self, state, coords):
-        return self.canBeStable(state, coords, False)
+        return state.board[coords[0]][coords[1]] == self.color and self.canBeStable(state, coords, False)
 
     def canBeOpStable(self, state, coords):
-        return self.canBeStable(state, coords, True)
+        return self.canBeStable(state, coords, True)  # missing condition
 
     def selective_deepening_criterion(self, state):
         # Simple player does not selectively deepen into certain nodes.
