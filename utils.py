@@ -137,4 +137,28 @@ class MiniMaxWithAlphaBetaPruning:
         :param maximizing_player: Whether this is a max node (True) or a min node (False).
         :return: A tuple: (The alpha-beta algorithm value, The move in case of max node or None in min mode)
         """
-        return self.utility(state), None
+        succ = state.get_possible_moves()
+        if len(succ) == 0 or depth == 0 or self.no_more_time():
+            return self.utility(state), None
+        if maximizing_player:
+            cur_max = -INFINITY, None
+            for c in succ:
+                next_state = copy.deepcopy(state)
+                next_state.perform_move(c[0], c[1])
+                v = self.search(next_state, depth -1, alpha, beta, False)[0], c
+                cur_max = v if v[0] > cur_max[0] else cur_max
+                alpha = cur_max[0] if cur_max[0] > alpha else alpha
+                if cur_max[0] >= beta:
+                    return INFINITY, None
+            return cur_max
+        else:
+            cur_min = INFINITY, None
+            for c in succ:
+                next_state = copy.deepcopy(state)
+                next_state.perform_move(c[0], c[1])
+                v = self.search(next_state, depth - 1, alpha, beta, True)[0], None
+                cur_min = v if v[0] < cur_min[0] else cur_min
+                beta = cur_min[0] if cur_min[0] < beta else beta
+                if cur_min[0] <= alpha:
+                    return -INFINITY, None
+            return cur_min
