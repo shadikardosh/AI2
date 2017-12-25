@@ -12,6 +12,6 @@ for i in range(5):
     res = game1.run()
 
 game2 = GameRunner(setup_time, time_per_k_turns, k, 'n', "simple_player", "alpha_beta_player")
-print("Simple player starts:")
+print("simple_player starts:")
 for i in range(5):
     game2.run()

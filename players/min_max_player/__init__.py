@@ -3,6 +3,7 @@
 #===============================================================================
 
 import abstract
+from players.simple_player import Player as BasePlayer
 from utils import INFINITY, run_with_limited_time, ExceededTimeError, MiniMaxAlgorithm
 from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
 import time
@@ -14,36 +15,9 @@ from collections import defaultdict
 #===============================================================================
 
 
-class Player(abstract.AbstractPlayer):
+class Player(BasePlayer):
     def __init__(self, setup_time, player_color, time_per_k_turns, k):
-        abstract.AbstractPlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
-        self.clock = time.time()
-
-        # We are simply providing (remaining time / remaining turns) for each turn in round.
-        # Taking a spare time of 0.05 seconds.
-        self.turns_remaining_in_round = self.k
-        self.time_remaining_in_round = self.time_per_k_turns
-        self.time_for_current_move = self.time_remaining_in_round / self.turns_remaining_in_round - 0.05
-
-        ############################
-        # Heuristics  Helper  Vars #
-        ############################
-        #sets of my and my oponent's stable cells
-        self.my_stables = set()
-        self.op_stables = set()
-        self.my_max_new_stables = set()
-        self.my_max_new_stables = set()
-
-        # board map bonus
-        # Based on Washington University research
-        self.board_bonus = [[10, -3, 2 , 2 , 2 , 2 , -3, 10],
-                            [-3, -4, -1, -1, -1, -1, -4, -3],
-                            [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
-                            [2 , -1, 0 , 1 , 1 , 0 , -1, 2],
-                            [2 , -1, 0 , 1 , 1 , 0 , -1, 2],
-                            [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
-                            [-3, -4, -1, -1, -1, -1, -4, -3],
-                            [10, -3, 2 , 2 , 2 , 2 , -3, 10]]
+        BasePlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -78,30 +52,6 @@ class Player(abstract.AbstractPlayer):
 
         return best_move
 
-    def utility(self, state):
-        if len(state.get_possible_moves()) == 0:
-            return INFINITY if state.curr_player != self.color else -INFINITY
-
-        my_u = 0
-        op_u = 0
-        for x in range(BOARD_COLS):
-            for y in range(BOARD_ROWS):
-                if state.board[x][y] == self.color:
-                    my_u += 1
-                if state.board[x][y] == OPPONENT_COLOR[self.color]:
-                    op_u += 1
-
-        if my_u == 0:
-            # I have no tools left
-            return -INFINITY
-        elif op_u == 0:
-            # The opponent has no tools left
-            return INFINITY
-        else:
-            return my_u - op_u
-
-    def no_more_time(self):
-        return (time.time() - self.clock) >= self.time_for_current_move
 
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'minimax')
