@@ -3,7 +3,7 @@
 #===============================================================================
 
 import abstract
-from players.simple_player import Player as BasePlayer
+from players.better_player import Player as BasePlayer
 from utils import INFINITY, run_with_limited_time, ExceededTimeError, MiniMaxWithAlphaBetaPruning
 from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
 import time

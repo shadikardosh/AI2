@@ -36,14 +36,15 @@ class Player(abstract.AbstractPlayer):
 
         # board map bonus
         # Based on Washington University research
-        self.board_bonus = [[10, -3, 2 , 2 , 2 , 2 , -3, 10],
+        self.corner_bonus = 50
+        self.board_bonus = [[self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
                             [2 , -1, 0 , 1 , 1 , 0 , -1, 2],
                             [2 , -1, 0 , 1 , 1 , 0 , -1, 2],
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
-                            [10, -3, 2 , 2 , 2 , 2 , -3, 10]]
+                            [self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus]]
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -84,6 +85,7 @@ class Player(abstract.AbstractPlayer):
         op_u = 0
         my_new_stables = set()
         op_new_stables = set()
+        self.updateBoardBonus(state)
         for x in range(BOARD_COLS):
             for y in range(BOARD_ROWS):
                 if state.board[x][y] == self.color:
@@ -105,6 +107,45 @@ class Player(abstract.AbstractPlayer):
             return INFINITY
         else:
             return my_u - op_u + my_cells - op_cells
+
+    def updateBoardBonus(self, state):
+        # call when we have captured x,y
+        corner_val = 50
+        if state.board[0][0] == self.color:
+            self.board_bonus[1][0] = corner_val
+            self.board_bonus[0][1] = corner_val
+            self.board_bonus[1][1] = 0
+        else:
+            self.board_bonus[1][0] = -3
+            self.board_bonus[0][1] = -3
+            self.board_bonus[1][1] = -4
+
+        if state.board[7][0] == self.color:
+            self.board_bonus[6][0] = corner_val
+            self.board_bonus[7][1] = corner_val
+            self.board_bonus[6][1] = 0
+        else:
+            self.board_bonus[6][0] = -3
+            self.board_bonus[7][1] = -3
+            self.board_bonus[6][1] = -4
+
+        if state.board[7][7] == self.color:
+            self.board_bonus[6][7] = corner_val
+            self.board_bonus[7][6] = corner_val
+            self.board_bonus[6][6] = 0
+        else:
+            self.board_bonus[6][7] = -3
+            self.board_bonus[7][6] = -3
+            self.board_bonus[6][6] = -4
+
+        if state.board[0][7] == self.color:
+            self.board_bonus[1][7] = corner_val
+            self.board_bonus[0][6] = corner_val
+            self.board_bonus[1][6] = 0
+        else:
+            self.board_bonus[1][7] = -3
+            self.board_bonus[0][6] = -3
+            self.board_bonus[1][6] = -4
 
     def is_my_stable(self, state, coords):
         return coords in self.my_stables or not state.isOnBoard(coords[0], coords[1])
@@ -134,8 +175,8 @@ class Player(abstract.AbstractPlayer):
         # this implementation does not promise to include all of the stable cells
         # UNLESS the cells are checked in certain order
         # (certain order = BFS order from all of the corners)
-        if self.is_stable(state, coords, isOp) and self.canBeHorStable(state, coords, isOp) and \
-                self.canBeVerStable(state, coords, isOp) and self.canBeDiagStable(state, coords, isOp):
+        if self.is_stable(state, coords, isOp) or (self.canBeHorStable(state, coords, isOp) and \
+                self.canBeVerStable(state, coords, isOp) and self.canBeDiagStable(state, coords, isOp)):
             return True
         return False
 
