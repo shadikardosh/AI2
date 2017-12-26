@@ -3,8 +3,8 @@
 #===============================================================================
 
 import abstract
-from players.min_max_player import Player as BasePlayer
-from utils import INFINITY, run_with_limited_time, ExceededTimeError, MiniMaxWithAlphaBetaPruning
+from players.simple_player import Player as BasePlayer
+from utils import INFINITY, run_with_limited_time, ExceededTimeError, MiniMaxAlgorithm
 from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
 import time
 import copy
@@ -18,7 +18,14 @@ from collections import defaultdict
 class Player(BasePlayer):
     def __init__(self, setup_time, player_color, time_per_k_turns, k):
         BasePlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
+        self.board_bonus_factor = 1
+        self.max_depth = 10
+        self.depth = 0
 
+    #def calculateBoardBonus(self, my_bb, op_bb):
+     #   if my_bb != op_bb and my_bb != -op_bb:
+      #      return self.board_bonus_factor * (my_bb-op_bb)/(my_bb+op_bb)
+       # return 0
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -38,12 +45,12 @@ class Player(BasePlayer):
         #         next_state = new_state
         #         best_move = move
         best_move = possible_moves[0]
-        min_max = MiniMaxWithAlphaBetaPruning(self.utility, self.color, self.no_more_time, None)
-        depth = 1
+        min_max = MiniMaxAlgorithm(self.utility, self.color, self.no_more_time, None)
+        self.depth = 1
         while self.no_more_time() is False:
-            min_max_val = min_max.search(game_state, depth, -INFINITY, INFINITY, True)[1]
+            min_max_val = min_max.search(game_state, self.depth, True)[1]
             best_move = min_max_val if min_max_val is not None else best_move
-            depth += 1
+            self.depth += 1
         if self.turns_remaining_in_round == 1:
             self.turns_remaining_in_round = self.k
             self.time_remaining_in_round = self.time_per_k_turns
@@ -53,6 +60,5 @@ class Player(BasePlayer):
 
         return best_move
 
-
     def __repr__(self):
-        return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'alphabeta')
+        return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'simple_minimax')

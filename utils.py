@@ -128,7 +128,7 @@ class MiniMaxWithAlphaBetaPruning:
         self.selective_deepening = selective_deepening
 
     def search(self, state, depth, alpha, beta, maximizing_player):
-        """Start the MiniMax algorithm.
+        """Start the MiniMaxWithAlphaBetaPruning algorithm.
 
         :param state: The state to start from.
         :param depth: The maximum allowed depth for the algorithm.

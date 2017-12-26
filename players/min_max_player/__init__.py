@@ -21,7 +21,7 @@ class Player(BasePlayer):
         self.board_bonus_factor = 1
         self.max_depth = 10
         self.executed_moves = 0
-        self.end_game_threshold = 0
+        self.end_game_threshold = 10
         self.depth = 0
 
     #def calculateBoardBonus(self, my_bb, op_bb):
@@ -38,7 +38,7 @@ class Player(BasePlayer):
         return 0
 
     def utility(self, state):
-        if self.depth + self.executed_moves > self.end_game_threshold:
+        if self.executed_moves > self.end_game_threshold:
             self.turnOffExtraHeuristics()
         res = BasePlayer.utility(self, state)
         self.restoreExtraHuerestics()
@@ -64,7 +64,7 @@ class Player(BasePlayer):
         best_move = possible_moves[0]
         min_max = MiniMaxAlgorithm(self.utility, self.color, self.no_more_time, None)
         self.depth = 1
-        while self.no_more_time() is False and self.depth <= self.max_depth:
+        while self.no_more_time() is False:
             min_max_val = min_max.search(game_state, self.depth, True)[1]
             best_move = min_max_val if min_max_val is not None else best_move
             self.depth += 1

@@ -45,6 +45,10 @@ class Player(abstract.AbstractPlayer):
                       (4, 100, 100, 1),
                       (4, 100, 10, 2),
                       (4, 10, 100, 1),
+                      (4, 4, 2, 1.5),
+                      (14, 4, 2.5, 2),
+                      (14, 10, 10, 100),
+                      (9, 4, 2.5, 2),
                       (4, 0, 0, 0)] # this must remain as the last confs!!
         self.corner_bonus, \
             self.mobility_factor, \
@@ -279,7 +283,6 @@ class Player(abstract.AbstractPlayer):
     def canBeStable(self, state, coords, isOp):
         # this implementation does not promise to include all of the stable cells
         # UNLESS the cells are checked in certain order
-        # (certain order = BFS order from all of the corners)
         if self.is_stable(state, coords, isOp) or (self.canBeHorStable(state, coords, isOp) and \
                     self.canBeVerStable(state, coords, isOp) and self.canBeDiagStable(state, coords, isOp)):
             return True

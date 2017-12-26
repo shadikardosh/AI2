@@ -4,10 +4,10 @@ from players import simple_player, random_player
 
 setup_time = 2
 k = 5
-time_per_k_turns = 1
+time_per_k_turns = 2
 verb = 'n'
 res = ""
-num_games = 10
+num_games = 5
 
 def playAgainstEachOther(str1, str2):
     print(str1, " VS ", str2, "\n")
@@ -58,7 +58,10 @@ for i in range(8):
 
 exit(0)
 """
-setStaticConf(0)
+setStaticConf(11)
 playAgainstEachOther("min_max_player", "simple_player")
-playAgainstEachOther("min_max_player", "needo_player")
+#playAgainstEachOther("min_max_player", "needo_player")
+
 playAgainstEachOther("min_max_player", "better_player")
+playAgainstEachOther("simple_min_max_player", "better_player")
+playAgainstEachOther("simple_min_max_player", "min_max_player")
