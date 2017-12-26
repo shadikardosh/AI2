@@ -20,6 +20,9 @@ class Player(BasePlayer):
         BasePlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
         self.board_bonus_factor = 1
         self.max_depth = 10
+        self.executed_moves = 0
+        self.end_game_threshold = 0
+        self.depth = 0
 
     #def calculateBoardBonus(self, my_bb, op_bb):
      #   if my_bb != op_bb and my_bb != -op_bb:
@@ -33,6 +36,13 @@ class Player(BasePlayer):
         if my_mobility != op_mobility:
             return self.mobility_factor*(my_mobility-op_mobility)/(op_mobility+my_mobility)
         return 0
+
+    def utility(self, state):
+        if self.depth + self.executed_moves > self.end_game_threshold:
+            self.turnOffExtraHeuristics()
+        res = BasePlayer.utility(self, state)
+        self.restoreExtraHuerestics()
+        return res
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -53,11 +63,11 @@ class Player(BasePlayer):
         #         best_move = move
         best_move = possible_moves[0]
         min_max = MiniMaxAlgorithm(self.utility, self.color, self.no_more_time, None)
-        depth = 1
-        while self.no_more_time() is False and depth <= self.max_depth:
-            min_max_val = min_max.search(game_state, depth, True)[1]
+        self.depth = 1
+        while self.no_more_time() is False and self.depth <= self.max_depth:
+            min_max_val = min_max.search(game_state, self.depth, True)[1]
             best_move = min_max_val if min_max_val is not None else best_move
-            depth += 1
+            self.depth += 1
         if self.turns_remaining_in_round == 1:
             self.turns_remaining_in_round = self.k
             self.time_remaining_in_round = self.time_per_k_turns
@@ -65,6 +75,7 @@ class Player(BasePlayer):
             self.turns_remaining_in_round -= 1
             self.time_remaining_in_round -= (time.time() - self.clock)
 
+        self.executed_moves += 1
         return best_move
 
     def __repr__(self):

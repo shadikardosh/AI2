@@ -48,7 +48,7 @@ def playAgainstEachOther(str1, str2):
 
 
 #playAgainstEachOther("needo_player", "better_player")
-
+"""
 for i in range(8):
     setStaticConf(i)
     print("\n\n Trying CONF #", i, "\n\n")
@@ -57,3 +57,8 @@ for i in range(8):
     playAgainstEachOther("min_max_player", "better_player")
 
 exit(0)
+"""
+setStaticConf(0)
+playAgainstEachOther("min_max_player", "simple_player")
+playAgainstEachOther("min_max_player", "needo_player")
+playAgainstEachOther("min_max_player", "better_player")

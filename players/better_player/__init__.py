@@ -44,12 +44,14 @@ class Player(abstract.AbstractPlayer):
                       (4, 1, 1, 1),
                       (4, 100, 100, 1),
                       (4, 100, 10, 2),
-                      (4, 10, 100, 1)]
+                      (4, 10, 100, 1),
+                      (4, 0, 0, 0)] # this must remain as the last confs!!
         self.corner_bonus, \
             self.mobility_factor, \
             self.stability_bonus_factor, \
             self.board_bonus_factor \
             = self.confs[global_conf_id]
+        self.curr_conf = global_conf_id
         self.board_bonus = [[self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
@@ -63,6 +65,12 @@ class Player(abstract.AbstractPlayer):
         self.curr_my_cells = 0
         self.curr_op_cells = 0
 
+    def turnOffExtraHeuristics(self):
+        self.setConfig(len(self.confs)-1)
+
+    def restoreExtraHuerestics(self):
+        self.setConfig(self.curr_conf)
+
     def setConfig(self, conf_id): # 2 is agressive, 3 is stable
         self.corner_bonus, \
             self.mobility_factor, \
@@ -71,9 +79,7 @@ class Player(abstract.AbstractPlayer):
             = self.confs[conf_id]
 
     def numOfConf(self):
-        return len(self.conf)
-
-
+        return len(self.confs)
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -145,8 +151,9 @@ class Player(abstract.AbstractPlayer):
         else:
             return 0
 
-
     def calculateMobilityBonus(self, state):
+        if self.mobility_factor == 0:
+            return 0
         my_mobility, op_mobility = self.__calculateEachPlayersMoves(state)
         if my_mobility == 0 or op_mobility == 0:
             return self.noMoreMovesEvaluation(self.curr_my_cells, self.curr_op_cells)
@@ -166,6 +173,8 @@ class Player(abstract.AbstractPlayer):
         return my_mobility, op_mobility
 
     def calculateBoardBonus(self, my_bb, op_bb):
+        if self.board_bonus_factor == 0:
+            return 0
         if my_bb != op_bb:
             return self.board_bonus_factor * (my_bb-op_bb)
         return 0
@@ -210,6 +219,8 @@ class Player(abstract.AbstractPlayer):
             self.board_bonus[1][6] = -4
 
     def calculateStabilityBonus(self, state):
+        if self.stability_bonus_factor == 0:
+            return 0
         if self.no_more_time():
             return 0
 
@@ -270,19 +281,10 @@ class Player(abstract.AbstractPlayer):
         # UNLESS the cells are checked in certain order
         # (certain order = BFS order from all of the corners)
         if self.is_stable(state, coords, isOp) or (self.canBeHorStable(state, coords, isOp) and \
-                self.canBeVerStable(state, coords, isOp) and self.canBeDiagStable(state, coords, isOp)):
+                    self.canBeVerStable(state, coords, isOp) and self.canBeDiagStable(state, coords, isOp)):
             return True
         return False
 
-    # How to use:
-    # in the utility function, calculate newly added stables for each player
-    # in the end, when you decide which move to make,  add them to the suitable stable set
-    #
-    #                    if self.canBeMyStable(state, (x, y)) and not (x, y) in self.my_stables:
-    #                        my_new_stables.add((x, y))
-    #
-    #                    if self.canBeOpStable(state, (x, y)) and not (x, y) in self.op_stables:
-    #                        op_new_stables.add((x, y))
 
     def canBeMyStable(self, state, coords):
         return state.board[coords[0]][coords[1]] == self.color and self.canBeStable(state, coords, False)
