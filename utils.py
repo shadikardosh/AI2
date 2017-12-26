@@ -97,7 +97,7 @@ class MiniMaxAlgorithm:
             for c in succ:
                 next_state = copy.deepcopy(state)
                 next_state.perform_move(c[0], c[1])
-                v = self.search(next_state, depth -1, False)[0], c
+                v = self.search(next_state, depth-1, False)[0], c
                 cur_max = v if v[0] > cur_max[0] else cur_max
             return cur_max
         else:

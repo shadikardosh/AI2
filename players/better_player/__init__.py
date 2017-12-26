@@ -12,7 +12,9 @@ from collections import defaultdict
 #===============================================================================
 # Player
 #===============================================================================
-
+global_conf_id = 0
+def setStaticConf(i):
+    global_conf_id = i
 
 class Player(abstract.AbstractPlayer):
     def __init__(self, setup_time, player_color, time_per_k_turns, k):
@@ -34,10 +36,20 @@ class Player(abstract.AbstractPlayer):
         self.my_max_new_stables = set()
         self.my_max_new_stables = set()
 
-        # board map bonus
         # Based on Washington University research
-        self.corner_bonus = 40
-        self.mobility_bonus = 5
+        self.confs = [(4, 10, 10, 1),
+                      (10, 100, 100, 1),
+                      (10, 100, 10, 2),
+                      (10, 10, 100, 1),
+                      (4, 1, 1, 1),
+                      (4, 100, 100, 1),
+                      (4, 100, 10, 2),
+                      (4, 10, 100, 1)]
+        self.corner_bonus, \
+            self.mobility_factor, \
+            self.stability_bonus_factor, \
+            self.board_bonus_factor \
+            = self.confs[global_conf_id]
         self.board_bonus = [[self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
@@ -46,6 +58,22 @@ class Player(abstract.AbstractPlayer):
                             [2 , -1, 1 , 0 , 0 , 1 , -1, 2],
                             [-3, -4, -1, -1, -1, -1, -4, -3],
                             [self.corner_bonus, -3, 2 , 2 , 2 , 2 , -3, self.corner_bonus]]
+
+        # helper fields to pass arguments between methods
+        self.curr_my_cells = 0
+        self.curr_op_cells = 0
+
+    def setConfig(self, conf_id): # 2 is agressive, 3 is stable
+        self.corner_bonus, \
+            self.mobility_factor, \
+            self.stability_bonus_factor, \
+            self.board_bonus_factor \
+            = self.confs[conf_id]
+
+    def numOfConf(self):
+        return len(self.conf)
+
+
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -75,40 +103,72 @@ class Player(abstract.AbstractPlayer):
         return best_move
 
     def utility(self, state):
-        if len(state.get_possible_moves()) == 0:
-            return INFINITY if state.curr_player != self.color else -INFINITY
-
-        STABLE_VAL = BOARD_COLS
 
         my_cells = 0
         op_cells = 0
-        my_u = 0
-        op_u = 0
-        my_new_stables = set()
-        op_new_stables = set()
-        self.deepUpdateBoardBonus(state)
+        my_board_bonus = 0
+        op_board_bonus = 0
+
+        #self.updateBoardBonus(state)
         for x in range(BOARD_COLS):
             for y in range(BOARD_ROWS):
                 if state.board[x][y] == self.color:
                     my_cells += 1
-                    my_u += self.board_bonus[x][y]
+                    my_board_bonus += self.board_bonus[x][y]
                     #if self.canBeMyStable(state, (x, y)) and not (x, y) in self.my_stables:
                     #    my_new_stables.add((x, y))
                 if state.board[x][y] == OPPONENT_COLOR[self.color]:
                     op_cells += 1
-                    op_u += self.board_bonus[x][y]
+                    op_board_bonus += self.board_bonus[x][y]
                     #if self.canBeOpStable(state, (x, y)) and not (x, y) in self.op_stables:
                     #    op_new_stables.add((x, y))
 
         if my_cells == 0:
-            # I have no tools left
             return -INFINITY
         elif op_cells == 0:
-            # The opponent has no tools left
             return INFINITY
         else:
-            op_mobility = state.get_possible_moves()
-            return my_u - op_u - self.mobility_bonus*len(op_mobility)
+            self.curr_my_cells, self.curr_op_cells = my_cells, op_cells
+            total_mobility_bonus = self.calculateMobilityBonus(state)
+            total_board_bonus = self.calculateBoardBonus(my_board_bonus, op_board_bonus)
+            total_stability_bonus = self.calculateStabilityBonus(state)
+            return my_cells - op_cells \
+                + total_mobility_bonus \
+                + total_board_bonus \
+                + total_stability_bonus
+
+    def noMoreMovesEvaluation(self, my_cells, op_cells):
+        if my_cells > op_cells:
+            return INFINITY
+        elif my_cells < op_cells:
+            return -INFINITY
+        else:
+            return 0
+
+
+    def calculateMobilityBonus(self, state):
+        my_mobility, op_mobility = self.__calculateEachPlayersMoves(state)
+        if my_mobility == 0 or op_mobility == 0:
+            return self.noMoreMovesEvaluation(self.curr_my_cells, self.curr_op_cells)
+        if my_mobility != op_mobility:
+            return self.mobility_factor*(my_mobility-op_mobility)/(op_mobility+my_mobility)
+        return 0
+
+    def __calculateEachPlayersMoves(self, state):
+        state.curr_player = OPPONENT_COLOR[self.color]
+        op_possible_moves = state.get_possible_moves()
+        op_mobility = len(op_possible_moves)
+        # little trick to calculate my_mobility
+        state.curr_player = self.color
+        my_mobility = len(state.get_possible_moves())
+        # return the state.color to what it used to be
+        state.curr_player = OPPONENT_COLOR[self.color]
+        return my_mobility, op_mobility
+
+    def calculateBoardBonus(self, my_bb, op_bb):
+        if my_bb != op_bb:
+            return self.board_bonus_factor * (my_bb-op_bb)
+        return 0
 
     def updateBoardBonus(self, state):
         # call when we have captured x,y
@@ -149,7 +209,13 @@ class Player(abstract.AbstractPlayer):
             self.board_bonus[0][6] = -3
             self.board_bonus[1][6] = -4
 
-    def deepUpdateBoardBonus(self, state):
+    def calculateStabilityBonus(self, state):
+        if self.no_more_time():
+            return 0
+
+        self.my_stables.clear()
+        self.op_stables.clear()
+
         for i in range(7):
             for j in range(7):
                 if self.canBeMyStable(state, (i, j)):
@@ -160,10 +226,20 @@ class Player(abstract.AbstractPlayer):
                     self.my_stables.add((i, 7-j))
                 if self.canBeMyStable(state, (7-i, 7-j)):
                     self.my_stables.add((7-i, 7-j))
-        for i in range(8):
-            for j in range(8):
-                if self.canBeStable(state, (i,j), False):
-                    self.board_bonus[i][j] = self.corner_bonus
+
+                if self.canBeOpStable(state, (i, j)):
+                    self.op_stables.add((i, j))
+                if self.canBeOpStable(state, (7-i, j)):
+                    self.op_stables.add((7-i, j))
+                if self.canBeOpStable(state, (i, 7-j)):
+                    self.op_stables.add((i, 7-j))
+                if self.canBeOpStable(state, (7-i, 7-j)):
+                    self.op_stables.add((7-i, 7-j))
+
+        my_stability = len(self.my_stables)
+        op_stability = len(self.op_stables)
+
+        return self.stability_bonus_factor * (my_stability-op_stability)/(my_stability+op_stability)
 
     def is_my_stable(self, state, coords):
         return coords in self.my_stables or not state.isOnBoard(coords[0], coords[1])

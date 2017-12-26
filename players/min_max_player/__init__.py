@@ -18,6 +18,21 @@ from collections import defaultdict
 class Player(BasePlayer):
     def __init__(self, setup_time, player_color, time_per_k_turns, k):
         BasePlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
+        self.board_bonus_factor = 1
+        self.max_depth = 10
+
+    #def calculateBoardBonus(self, my_bb, op_bb):
+     #   if my_bb != op_bb and my_bb != -op_bb:
+      #      return self.board_bonus_factor * (my_bb-op_bb)/(my_bb+op_bb)
+       # return 0
+
+    def calculateMobilityBonus(self, state):
+        if self.no_more_time():
+            return 0
+        my_mobility, op_mobility = self.__calculateEachPlayersMoves(state)
+        if my_mobility != op_mobility:
+            return self.mobility_factor*(my_mobility-op_mobility)/(op_mobility+my_mobility)
+        return 0
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()
@@ -39,7 +54,7 @@ class Player(BasePlayer):
         best_move = possible_moves[0]
         min_max = MiniMaxAlgorithm(self.utility, self.color, self.no_more_time, None)
         depth = 1
-        while self.no_more_time() is False:
+        while self.no_more_time() is False and depth <= self.max_depth:
             min_max_val = min_max.search(game_state, depth, True)[1]
             best_move = min_max_val if min_max_val is not None else best_move
             depth += 1
@@ -51,7 +66,6 @@ class Player(BasePlayer):
             self.time_remaining_in_round -= (time.time() - self.clock)
 
         return best_move
-
 
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'minimax')
