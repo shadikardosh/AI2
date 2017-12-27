@@ -306,6 +306,6 @@ class Player(abstract.AbstractPlayer):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'better')
 
     def pase_fuck(self, fuck, i):
-        x = translate_moves_dict(fuck[i+1])
-        y = int(fuck[i+2])-1
+        x = translate_moves_dict(fuck[6*i+1])
+        y = int(fuck[6*i+2])-1
         return x,y
