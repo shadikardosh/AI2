@@ -1,10 +1,10 @@
 #===============================================================================
 # Imports
 #===============================================================================
-
+import re
 import abstract
 from utils import INFINITY, run_with_limited_time, ExceededTimeError
-from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
+from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS, translate_moves_dict
 import time
 import copy
 from collections import defaultdict
@@ -304,3 +304,11 @@ class Player(abstract.AbstractPlayer):
 
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'better')
+
+    def pase_fuck(self, fuck, i, symbol):
+        regx = r'(\+\w\d+\-\w\d+)+'
+        match = re.search(regx, fuck).group()
+        move = list(match[i+1:2])
+        x = translate_moves_dict[move[0]]
+        y = move[1]-1
+        return x,y
