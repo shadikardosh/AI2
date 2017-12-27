@@ -305,10 +305,8 @@ class Player(abstract.AbstractPlayer):
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'better')
 
-    def pase_fuck(self, fuck, i, symbol):
-        regx = r'(\+\w\d+\-\w\d+)+'
-        match = re.search(regx, fuck).group()
-        move = list(match[i+1:2])
+    def pase_fuck(self, fuck, i):
+        move = list(fuck[i+1:2])
         x = translate_moves_dict[move[0]]
         y = move[1]-1
         return x,y
