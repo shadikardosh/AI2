@@ -4,7 +4,7 @@
 import re
 import abstract
 from utils import INFINITY, run_with_limited_time, ExceededTimeError
-from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS, translate_moves_dict
+from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS, translate_moves_dict, game_book
 import time
 import copy
 from collections import defaultdict
@@ -69,6 +69,10 @@ class Player(abstract.AbstractPlayer):
         self.curr_my_cells = 0
         self.curr_op_cells = 0
 
+        self._curr_prefix = []
+        self._op_moves = []
+        self._previous_state = None
+
     def turnOffExtraHeuristics(self):
         self.setConfig(len(self.confs)-1)
 
@@ -86,6 +90,13 @@ class Player(abstract.AbstractPlayer):
         return len(self.confs)
 
     def get_move(self, game_state, possible_moves):
+        for move in self._op_moves:
+            prev_state = copy.deepcopy(self._previous_state)
+            prev_state.perform_move(move[0], move[1])
+            possible_board = prev_state.board
+            if possible_board == game_state.board:
+                self._curr_prefix.append(move)
+
         self.clock = time.time()
         self.time_for_current_move = self.time_remaining_in_round / self.turns_remaining_in_round - 0.05
         if len(possible_moves) == 1:
@@ -110,6 +121,10 @@ class Player(abstract.AbstractPlayer):
             self.turns_remaining_in_round -= 1
             self.time_remaining_in_round -= (time.time() - self.clock)
 
+        self._curr_prefix.append(best_move)
+        self._previous_state = copy.deepcopy(new_state)
+        new_state.curr_player = OPPONENT_COLOR[self.color]
+        self._op_moves = new_state.get_possible_moves()
         return best_move
 
     def utility(self, state):
@@ -305,7 +320,39 @@ class Player(abstract.AbstractPlayer):
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'better')
 
-    def pase_fuck(self, fuck, i):
+    def _parse_fuck(self, fuck, i):
+        '''
+        :param fuck: a string describing some game
+        :param i: index if a move
+        :return: the move as a tuple of (x,y)
+        :note: zero indexed
+        :note if the string is +d3-a2+b4... then the first move is d3, the second is a2 and the third is b4 (again, zero indexed)
+        '''
         x = translate_moves_dict(fuck[6*i+1])
         y = int(fuck[6*i+2])-1
-        return x,y
+        return x, y
+
+    def _get_first_i_moves(self, i, game):
+        '''
+        :param i: num of moves required
+        :param game: the game itself, as a string
+        :return: a list containing the first i moves parsed from the game string
+        '''
+        res =[]
+        for (idx,letter) in enumerate(game):
+            if idx >= i:
+                break
+            res.append(self._parse_fuck(game, idx))
+        return res
+
+    def _dejavu(self):
+        '''
+        :return: True if the self_curr_prefix is the same as one of the game starts from the game book
+        '''
+        for game in game_book:
+            prefix = self._get_first_i_moves(len(self._curr_prefix), game)
+            if prefix == self._curr_prefix:
+                return True
+        return False
+
+
