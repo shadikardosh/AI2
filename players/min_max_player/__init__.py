@@ -4,8 +4,9 @@
 
 import abstract
 from players.better_player import Player as BasePlayer
+from players.simple_player import Player as BasePlayer2
 from utils import INFINITY, run_with_limited_time, ExceededTimeError, MiniMaxAlgorithm
-from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
+from Reversi.consts import EM, X_PLAYER, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS
 import time
 import copy
 from collections import defaultdict
@@ -15,7 +16,7 @@ from collections import defaultdict
 #===============================================================================
 
 
-class Player(BasePlayer):
+class Player(BasePlayer, BasePlayer2):
     def __init__(self, setup_time, player_color, time_per_k_turns, k):
         BasePlayer.__init__(self, setup_time, player_color, time_per_k_turns, k)
         self.board_bonus_factor = 1
@@ -40,9 +41,23 @@ class Player(BasePlayer):
     def utility(self, state):
         if self.executed_moves > self.end_game_threshold:
             self.turnOffExtraHeuristics()
-        res = BasePlayer.utility(self, state)
+        mine = 0
+        empty_cells = 0
+        for x in range(BOARD_COLS):
+            for y in range(BOARD_ROWS):
+                if state.board[x][y] == self.color:
+                    mine += 1
+                elif state.board[x][y] == EM:
+                    empty_cells += 1
+        empty_rate = (empty_cells/64)
+        rate = mine/64
+        rate *= empty_rate
+        better_res = BasePlayer.utility(self, state)
+        simple_res = BasePlayer2.utility(self, state)
+        rate = rate*1.8 if self.color == X_PLAYER else (rate*1.5 - 1)
+        res = (rate*better_res) + ((1-rate)*simple_res)
         self.restoreExtraHuerestics()
-        return res
+        return res # TODO when self is X, keep it the same. When self is O, play hafoo5
 
     def get_move(self, game_state, possible_moves):
         self.clock = time.time()

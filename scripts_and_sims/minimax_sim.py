@@ -59,7 +59,7 @@ for i in range(8):
 exit(0)
 """
 setStaticConf(11)
-playAgainstEachOther("min_max_player", "simple_player")
+# playAgainstEachOther("min_max_player", "simple_player")
 #playAgainstEachOther("min_max_player", "needo_player")
 
 playAgainstEachOther("min_max_player", "better_player")
