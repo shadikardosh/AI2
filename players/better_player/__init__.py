@@ -4,9 +4,10 @@
 import re
 import abstract
 from utils import INFINITY, run_with_limited_time, ExceededTimeError
-from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS, translate_moves_dict, game_book
+from Reversi.consts import EM, OPPONENT_COLOR, BOARD_COLS, BOARD_ROWS, translate_moves_dict
 import time
 import copy
+import os
 from collections import defaultdict
 
 #===============================================================================
@@ -73,6 +74,8 @@ class Player(abstract.AbstractPlayer):
         self._op_moves = []
         self._previous_state = None
 
+        self.opening_moves = self._init_most_popular_moves()
+
     def turnOffExtraHeuristics(self):
         self.setConfig(len(self.confs)-1)
 
@@ -96,11 +99,23 @@ class Player(abstract.AbstractPlayer):
             possible_board = prev_state.board
             if possible_board == game_state.board:
                 self._curr_prefix.append(move)
+                break
 
         self.clock = time.time()
         self.time_for_current_move = self.time_remaining_in_round / self.turns_remaining_in_round - 0.05
         if len(possible_moves) == 1:
             return possible_moves[0]
+        popular_game = self._dejavu() if len(self._curr_prefix) <=10 else None
+        if popular_game is not None:
+            best_move = self._get_next_popular_move(popular_game)
+            new_state = copy.deepcopy(game_state)
+            new_state.perform_move(best_move[0], best_move[1])
+            self._curr_prefix.append(best_move)
+            self._previous_state = copy.deepcopy(new_state)
+            new_state.curr_player = OPPONENT_COLOR[self.color]
+            self._op_moves = new_state.get_possible_moves()
+
+            self._update_remaining_time()
 
         best_move = possible_moves[0]
         next_state = copy.deepcopy(game_state)
@@ -114,17 +129,13 @@ class Player(abstract.AbstractPlayer):
                 next_state = new_state
                 best_move = move
 
-        if self.turns_remaining_in_round == 1:
-            self.turns_remaining_in_round = self.k
-            self.time_remaining_in_round = self.time_per_k_turns
-        else:
-            self.turns_remaining_in_round -= 1
-            self.time_remaining_in_round -= (time.time() - self.clock)
-
         self._curr_prefix.append(best_move)
         self._previous_state = copy.deepcopy(new_state)
         new_state.curr_player = OPPONENT_COLOR[self.color]
         self._op_moves = new_state.get_possible_moves()
+
+        self._update_remaining_time()
+
         return best_move
 
     def utility(self, state):
@@ -161,6 +172,14 @@ class Player(abstract.AbstractPlayer):
                 + total_mobility_bonus \
                 + total_board_bonus \
                 + total_stability_bonus
+
+    def _update_remaining_time(self):
+        if self.turns_remaining_in_round == 1:
+            self.turns_remaining_in_round = self.k
+            self.time_remaining_in_round = self.time_per_k_turns
+        else:
+            self.turns_remaining_in_round -= 1
+            self.time_remaining_in_round -= (time.time() - self.clock)
 
     def noMoreMovesEvaluation(self, my_cells, op_cells):
         if my_cells > op_cells:
@@ -320,7 +339,7 @@ class Player(abstract.AbstractPlayer):
     def __repr__(self):
         return '{} {}'.format(abstract.AbstractPlayer.__repr__(self), 'better')
 
-    def _parse_fuck(self, fuck, i):
+    def _parse_book(self, book, i):
         '''
         :param fuck: a string describing some game
         :param i: index if a move
@@ -328,8 +347,10 @@ class Player(abstract.AbstractPlayer):
         :note: zero indexed
         :note if the string is +d3-a2+b4... then the first move is d3, the second is a2 and the third is b4 (again, zero indexed)
         '''
-        x = translate_moves_dict(fuck[6*i+1])
-        y = int(fuck[6*i+2])-1
+        if i > 10:
+            return None
+        x = translate_moves_dict[book[3*i+1]]
+        y = int(book[3*i+2])-1
         return x, y
 
     def _get_first_i_moves(self, i, game):
@@ -342,17 +363,29 @@ class Player(abstract.AbstractPlayer):
         for (idx,letter) in enumerate(game):
             if idx >= i:
                 break
-            res.append(self._parse_fuck(game, idx))
+            res.append(self._parse_book(game, idx))
         return res
 
     def _dejavu(self):
         '''
         :return: True if the self_curr_prefix is the same as one of the game starts from the game book
         '''
-        for game in game_book:
+        for game in self.opening_moves:
             prefix = self._get_first_i_moves(len(self._curr_prefix), game)
             if prefix == self._curr_prefix:
-                return True
-        return False
+                return game
+        return None
+
+    def _get_next_popular_move(self, game):
+        idx = len(self._curr_prefix)
+        return self._get_first_i_moves(idx+1,game)[idx]
+
+    def _init_most_popular_moves(self):
+        os.system( 'cut -f1-6 -d"+" ../Reversi/book.gam | sort | uniq -c | sort -rn | cut -f2-10 -d" "| cut -f2-10 -d" " | head -70 > opening_moves.txt')
+        with open('opening_moves.txt') as moves:
+            content = moves.readlines()
+        content = [x.strip() for x in content]
+        os.system('rm -f opening_moves.txt')
+        return content
 
 
